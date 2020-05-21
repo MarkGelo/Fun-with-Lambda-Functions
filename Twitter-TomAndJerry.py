@@ -37,7 +37,6 @@ def lambda_handler(event, context):
 
     # get random frame
     randomFrame = random.randint(0, numFrames - 1)
-    # think will reesult in error
     
     # get key for that frame
     KEY = keyArray[randomFrame]
