@@ -51,7 +51,7 @@ def lambda_handler(event, context):
     print(client.info)
     #post picture with tags
     client.create_photo(    'tomandjerryscreens', state = 'published',
-                            tags = ['tom', 'jerry', 'tomandjerry', 'tomjerry'],
+                            tags = ['tom and jerry'],
                             data = '/tmp/local.jpeg')
     
     # delete local image
