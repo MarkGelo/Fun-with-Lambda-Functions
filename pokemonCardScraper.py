@@ -7,6 +7,12 @@ import botocore
 import json
 import pymysql
 import time
+import csv
+import time
+from PIL import Image
+from os import listdir
+import imagehash
+from pprint import pprint
 
 #rds settings
 rds_host  = ''
@@ -16,6 +22,7 @@ db_name = ''
 # connect to rds
 try:
     conn = pymysql.connect(rds_host, user=name, passwd=password, db=db_name, connect_timeout=5)
+    cur = conn.cursor()
 except pymysql.MySQLError as e:
     print('fail')
 except:
@@ -258,10 +265,84 @@ def scrape_and_input(currentID, db):
     if image:
         urllib.request.urlretrieve(image, 'img\{}-{}.jpg'.format(db_id, db_name))
 
+def scrape1_input(site, insert):
+    source = requests.get(site).text
+    soup = BeautifulSoup(source, 'lxml')
+    cards = soup.find_all('article', class_ = 'card card-list-item')
+    for card in cards:
+        tcg_id = card.get('id').replace('card-', '')
+        name = card.find('div', class_='card-list-item-entry card-list-item-name').a.text
+        number1 = card.find('div', class_='card-list-item-entry card-list-item-number').span.text
+        if '/' in number1:
+            number = number1[:number1.find('/')]
+        else:
+            number = number1
+        expansion = card.find('div', class_='card-list-item-entry card-list-item-expansion').span.text
+        card_type1 = card.find('div', class_='card-list-item-entry card-list-item-card-type').span.text.replace('\n', '').strip().split('-')
+        card_type2 = [x.strip() for x in card_type1]
+        card_type = '-'.join(card_type2)
+        rarity = card.find('div', class_='card-list-item-entry card-list-item-rarity').span.text.strip()
+        if insert:
+            cur.execute('''insert into cards(name, expansion, card_number, card_type, rarity, tcg_id)
+                            values(%s,%s,%s,%s,%s,%s)''', [name, expansion, number, card_type, rarity, tcg_id])
+            conn.commit()
+        else:
+            print('{}-{}-{}-{}-{}-{}'.format(name, number, expansion, card_type, rarity, tcg_id))
+    print(len(cards))
+
+def download_images(cards):
+    for card in cards:
+        source = requests.get('https://www.tcgcollector.com/cards/{}'.format(card['tcg_id'])).text
+        soup = BeautifulSoup(source, 'lxml')
+        image = soup.find('div', id = 'card-image-container').img['src'] # get image url
+        # download image with the name with primary key and name of pokemon
+        if image:
+            urllib.request.urlretrieve(image, 'images\{}-{}.jpg'.format(card['expansion'], card['number']))
+        time.sleep(0.2)
+
+def read_csv(file):
+    i = 0
+    cards = []
+    with open(file, 'r') as f:
+        reader = csv.reader(f, delimiter=',')
+        for row in reader:
+            if i == 0: # first line
+                i += 1
+            else:
+                cards.append({'expansion':row[0], 'number':row[1], 'tcg_id':row[2]})
+    return cards
+
+def get_wrong_broken_images():
+        hash1 = imagehash.average_hash(Image.open('back.jpg'))
+        cutoff = 5
+        similar = []
+        broken = []
+        for fileName in listdir('{}/images'.format(os.getcwd())):
+                try:
+                        hash2 = imagehash.average_hash(Image.open('images/{}'.format(fileName)))
+                        if hash1 - hash2 < cutoff:
+                                similar.append(fileName)
+                                print('image similar -- {}'.format(fileName))
+                except:
+                        broken.append(fileName)
+                        print('image broken -- {}'.format(fileName))
+
+        print('Similar:')
+        pprint(similar)
+        print(len(similar))
+        return similar
+
+def delete_from_table(broken):
+    for card in broken:
+        card_i = card.split('-')
+        expansion = card_i[0]
+        number = card_i[1].replace('.jpg', '')
+        cur.execute('delete from good_cards where expansion = %s and card_number = %s', [expansion, number])
+        conn.commit()
+
 if __name__ == '__main__':
-    #currentID is the latest tcg_id
-    currentID = 24
-    cur = conn.cursor()
-    for i in range(1, 20):
-        time.sleep(1)
-        scrape_and_input(currentID + i, cur)
+    #in https://www.tcgcollector.com/expansions#expansion-series-19
+    # didnt include unnumbered promos, box toppers, swordshield/teamup/sunmoon/diamondpearl energies
+
+    # 602 broken cards deleted from cards, resulting is in good_cards
+    pass
