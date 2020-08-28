@@ -1,0 +1,7 @@
+*.txt
+*.json
+*.webp
+Pipfile
+Pipfile.lock
+cards/
+pics/
