@@ -5,3 +5,5 @@ Pipfile
 Pipfile.lock
 cards/
 pics/
+new/
+new_webp/

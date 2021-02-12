@@ -142,9 +142,9 @@ def into_database():
         connection.commit()
 
 if __name__ == '__main__':
-    link = 'https://jp.pokellector.com/sets/S1H-Shield'
-    series = 'Sun & Moon' # change series if changing to another seires
-    set_code = 's1h' # change setcode for each link
+    link = 'https://jp.pokellector.com/sets/S4-Electrifying-Tackle'
+    series = 'Sword & Shield' # change series if changing to another seires
+    set_code = 's4' # change setcode for each link
     #scrape_set(link, series, set_code)
     #get_images()
     #into_database()
